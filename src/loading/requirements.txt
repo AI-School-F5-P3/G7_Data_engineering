@@ -1,0 +1,6 @@
+kafka-python
+pymongo
+psycopg2-binary
+redis
+prometheus-client
+pytest

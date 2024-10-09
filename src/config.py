@@ -1,0 +1,5 @@
+KAFKA_BOOTSTRAP_SERVERS = 'kafka:9092'
+KAFKA_TOPIC = 'hr_topic'
+MONGO_URI = 'mongodb://mongodb:27017/hrdata'
+POSTGRES_URI = 'postgresql://user:password@sqldb:5432/hrdata'
+REDIS_URI = 'redis://redis:6379'
