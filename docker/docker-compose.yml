@@ -1,39 +1,26 @@
 version: '3.8'
 
 services:
-  zookeeper:
-    image: confluentinc/cp-zookeeper:latest
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-
-  kafka:
-    image: confluentinc/cp-kafka:latest
-    depends_on:
-      - zookeeper
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-
   mongodb:
     image: mongo:latest
     ports:
       - "27017:27017"
     volumes:
-      - ./configs/mongodb:/data/db
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
 
   sqldb:
     image: postgres:latest
     environment:
       POSTGRES_DB: hrdata
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER: postgre
+      POSTGRES_PASSWORD: luis123
     ports:
       - "5432:5432"
     volumes:
-      - ./configs/sqldb:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
 
   redis:
     image: redis:latest
@@ -49,15 +36,17 @@ services:
 
   app:
     build:
-      context: ..
-      dockerfile: docker/Dockerfile
+      context: .
+      dockerfile: Dockerfile
     depends_on:
-      - kafka
       - mongodb
       - sqldb
       - redis
     environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      MONGO_URI: mongodb://mongodb:27017/hrdata
-      POSTGRES_URI: postgresql://user:password@sqldb:5432/hrdata
+      MONGO_URI: mongodb://root:example@mongodb:27017/hrdata?authSource=admin
+      POSTGRES_URI: postgresql://postgre:luis123@sqldb:5432/hrdata
       REDIS_URI: redis://redis:6379
+
+volumes:
+  mongodb_data:
+  postgres_data:

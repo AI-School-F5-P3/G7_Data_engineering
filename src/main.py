@@ -36,4 +36,6 @@ def main():
             logger.error(f"Error processing message: {e}")
 
 if __name__ == "__main__":
-    main()
+    consumer = KafkaConsumer()
+    for message in consumer.consume():
+        print(f"Received message: {message}")
