@@ -1,19 +1,18 @@
 import psycopg2
+import os
+from dotenv import load_dotenv
+from config import POSTGRES_URI
+
+load_dotenv()  # Esto carga las variables de entorno desde el archivo .env
 
 class SQLLoader:
-    def __init__(self, dbname, user, password, host="localhost", port="5432"):
-        # Conectar a la base de datos
-        self.conn = psycopg2.connect(
-            dbname=dbname,
-            user=user,
-            password=password,
-            host=host,
-            port=port
-        )
+    def __init__(self):
+        # Conectar a la base de datos usando la URI de postgres
+        self.conn = psycopg2.connect(POSTGRES_URI)
         self.cursor = self.conn.cursor()
 
     def load(self, data):
-        self.cursor.execute("""  
+        self.cursor.execute("""
             INSERT INTO hr_data (passport, name, lastname, city, job, salary)
             VALUES (%s, %s, %s, %s, %s, %s)
         """, (
@@ -41,12 +40,7 @@ class SQLLoader:
 
 # Ejemplo de uso
 if __name__ == "__main__":
-    # Reemplaza con tus credenciales
-    dbname = "hr_data"
-    user = "postgres"
-    password = "luis123"
-
-    sql_loader = SQLLoader(dbname, user, password)
+    sql_loader = SQLLoader()
 
     # Aquí iría tu lógica para cargar datos
     sample_data = {

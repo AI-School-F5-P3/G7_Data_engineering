@@ -8,15 +8,15 @@ services:
     volumes:
       - mongodb_data:/data/db
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: example
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
 
   sqldb:
     image: postgres:latest
     environment:
-      POSTGRES_DB: hrdata
-      POSTGRES_USER: postgre
-      POSTGRES_PASSWORD: luis123
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
@@ -43,9 +43,9 @@ services:
       - sqldb
       - redis
     environment:
-      MONGO_URI: mongodb://root:example@mongodb:27017/hrdata?authSource=admin
-      POSTGRES_URI: postgresql://postgre:luis123@sqldb:5432/hrdata
-      REDIS_URI: redis://redis:6379
+      MONGO_URI: ${MONGO_URI}
+      POSTGRES_URI: ${POSTGRES_URI}
+      REDIS_URI: ${REDIS_URI}
 
 volumes:
   mongodb_data:
