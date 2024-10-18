@@ -1,5 +1,5 @@
 from kafka import KafkaProducer, KafkaConsumer
-from datagen.data_generator import RandomDataGenerator
+from data_generator import RandomDataGenerator
 import json
 
 def make_producer(host):
