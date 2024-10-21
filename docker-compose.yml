@@ -1,12 +1,61 @@
 version: '3'
 services:
+  app:
+    build: .
+    container_name: app-container
+    ports:
+      - 5000:5000
+    depends_on:
+      - mongo
+      - mysql
+      - redis
+      - kafka
+      - zookeeper
+    env_file:
+      - .env
+    volumes:
+      - .:/usr/src/app
+    networks:
+      - app-network
+
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     ports:
-      - "22181:2181"
+      - 22181:2181
+    networks:
+      - app-network
+  mongo:
+    image: mongo:latest
+    container_name: mongo-container
+    ports: 
+      - 27017:27017
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - app-network
+  mysql:
+    image: mysql:latest
+    container_name: mysql-container
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: mydatabase
+    ports: 
+      - 3306:3306
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - app-network
+
+  redis:
+    image: redis:latest
+    container_name: redis-container
+    ports: 
+      - 6379:6379
+    networks:
+      - app-network
 
   kafka:
     container_name: kafka
@@ -14,8 +63,7 @@ services:
     depends_on:
       - zookeeper
     ports:
-      - "9092:9092"
-      - "29092:29092"
+      - 29092:29092
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -31,29 +79,9 @@ services:
       - kafka
     restart: always
 
-  consumer:
-  container_name: consumer
-  build: ./etl
-  depends_on:
-    - kafka
-  environment:
-    KAFKA_BOOTSTRAP_SERVERS: kafka:9092  # Internal Docker hostname
-    DOCKER_ENV: "true"
-  restart: always
+volumes:
+  mongo-data:
+  mysql-data:
 
-
-  mongodb:
-    image: mongo:latest
-    container_name: mongodb
-    ports:
-      - "27017:27017"
-  
-  postgres:
-    image: postgres:latest
-    container_name: postgres
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: hr_data
-    ports:
-      - "5432:5432"
+networks:
+  app-network:
