@@ -1,14 +1,9 @@
-import logging
 from extraction.kafkaconsumer import KafkaConsumer
 from transformation.datatransformer import DataTransformer
 from loading.mongodbloader import MongoDBLoader
 from loading.sql_loader import SQLLoader
 from prometheus_client import start_http_server, Counter
-import sys
-import os
-
-# Añadir la raíz del proyecto al PYTHONPATH
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import logging
 
 # Configuración de métricas
 messages_processed = Counter('messages_processed_total', 'Total number of messages processed')
@@ -18,16 +13,16 @@ errors_counter = Counter('errors_total', 'Total number of errors')
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Inicializar el servidor Prometheus en el puerto 8000
-start_http_server(8000)
-logger.info("Prometheus metrics server started")
-
 def main():
     # Inicializar componentes
     kafka_consumer = KafkaConsumer()
     data_transformer = DataTransformer()
     mongodb_loader = MongoDBLoader()
     sql_loader = SQLLoader()
+
+    # Iniciar servidor de Prometheus
+    start_http_server(8000)
+    logger.info("Prometheus metrics server started")
 
     # Procesar mensajes
     for message in kafka_consumer.consume():
@@ -36,21 +31,34 @@ def main():
             # Transformar datos
             processed_data = data_transformer.transform(message)
             
-            if processed_data:  # Asegúrate de que los datos no sean `None`
+            if processed_data:
                 logger.info(f"Processed data: {processed_data}")
-                # Cargar en MongoDB
+                
+                # Cargar datos en MongoDB
                 mongodb_loader.load(processed_data)
 
-                # Cargar en SQL DB
-                sql_loader.load(processed_data)
+                # Cargar datos en las tablas correspondientes
+                if 'passport' in processed_data:
+                    if 'name' in processed_data:
+                        sql_loader.load_personal_data(processed_data)
+                    
+                    if 'iban' in processed_data:
+                        sql_loader.load_bank_data(processed_data)
+                    
+                    if 'fullname' in processed_data and 'company' in processed_data:
+                        sql_loader.load_professional_data(processed_data)
+                    
+                    if 'city' in processed_data:
+                        sql_loader.load_location_data(processed_data)
 
-                # Incrementar la métrica de mensajes procesados
+                    if 'ipv4' in processed_data:
+                        sql_loader.load_net_data(processed_data)
+
+                # Incrementar métrica de mensajes procesados
                 messages_processed.inc()
-                logger.info(f"Processed message: {processed_data['passport']}")
             else:
                 logger.info("Incomplete data, waiting for more fragments.")
         except Exception as e:
-            # Incrementar la métrica de errores
             errors_counter.inc()
             logger.error(f"Error processing message: {e}")
 
