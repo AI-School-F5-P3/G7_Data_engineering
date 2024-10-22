@@ -17,7 +17,8 @@ services:
       - .:/usr/src/app
     networks:
       - app-network
-
+    command: ["faust", "-A", "app", "worker", "-l", "info"]  # Run Faust worker inside the Docker container
+  
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
     environment:
@@ -27,6 +28,7 @@ services:
       - 22181:2181
     networks:
       - app-network
+
   mongo:
     image: mongo:latest
     container_name: mongo-container
@@ -36,14 +38,14 @@ services:
       - mongo-data:/data/db
     networks:
       - app-network
+
   mysql:
     image: mysql:latest
     container_name: mysql-container
-    environment:
-      MYSQL_ROOT_PASSWORD: password
-      MYSQL_DATABASE: mydatabase
+    env_file:
+      - .env
     ports: 
-      - 3306:3306
+      - 3307:3306
     volumes:
       - mysql-data:/var/lib/mysql
     networks:
@@ -71,6 +73,8 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - app-network
 
   random_generator:
     container_name: random_generator
@@ -78,6 +82,8 @@ services:
     depends_on:
       - kafka
     restart: always
+    networks:
+      - app-network
 
 volumes:
   mongo-data:
@@ -85,3 +91,4 @@ volumes:
 
 networks:
   app-network:
+    driver: bridge

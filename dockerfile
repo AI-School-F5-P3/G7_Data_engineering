@@ -1,12 +1,19 @@
+# Use an official Python image
 FROM python:3.11
 
 WORKDIR /usr/src/app
 
-COPY requirements.txt ./
+# Install dependencies
+COPY requirements.txt /usr/src/app/requirements.txt
+
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Copy the application files
+COPY . /usr/src/app
 
+# Give executable permission to app.py (if necessary)
 RUN chmod +x app.py
 
-CMD [ "python", "app.py", "worker" ]
+# Run the Faust application
+CMD ["faust", "-A", "app", "worker", "-l", "info"]
+
