@@ -1,0 +1,42 @@
+version: '3.10'
+
+services:
+  kafka: # Kafka for streaming data
+    image: bitnami/kafka:latest
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:9093,OUTSIDE://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+    networks:
+      - monitoring
+
+  zookeeper: # Zookeeper for Kafka coordination
+    image: bitnami/zookeeper:latest
+    ports:
+        - "2181:2181"
+    environment:
+        ALLOW_ANONYMOUS_LOGIN: "yes"
+    networks:
+        - monitoring
+
+
+  redis: # Redis for storing data
+    image: redis:latest
+    ports:
+        - "6379:6379"
+    networks:
+        - monitoring
+
+
+  postgres: # PostgreSQL for storing data
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    env_file: # Environment variables for PostgreSQL
+      - .env
+    networks:
+      - monitoring
