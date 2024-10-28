@@ -1,0 +1,51 @@
+---
+# kafka_jmx_config.yaml
+
+# Port configuration
+startDelaySeconds: 0
+ssl: false
+
+# Whitelist patterns for metrics you want to export
+rules:
+  - pattern: "kafka.server<type=(BrokerTopicMetrics), name=(.*)>"
+    name: "kafka_server_brokertopicmetrics_$2"
+    type: GAUGE
+    help: "General Kafka broker and topic metrics"
+
+  - pattern: "kafka.server<type=(KafkaRequestHandlerPool), name=(.*)>"
+    name: "kafka_server_requesthandlerpool_$2"
+    type: GAUGE
+    help: "Kafka request handler pool metrics"
+
+  - pattern: "kafka.network<type=(RequestMetrics), name=(.*), request=(.*)>"
+    name: "kafka_network_requestmetrics_$2_$3"
+    type: GAUGE
+    help: "Kafka network request metrics"
+
+  - pattern: "kafka.server<type=(ReplicaManager), name=(.*)>"
+    name: "kafka_server_replicamanager_$2"
+    type: GAUGE
+    help: "Kafka replica manager metrics"
+
+  - pattern: "kafka.controller<type=(ControllerStats), name=(.*)>"
+    name: "kafka_controller_controllerstats_$2"
+    type: GAUGE
+    help: "Kafka controller stats"
+
+  - pattern: "kafka.log<type=(Log), name=(.*), topic=(.*), partition=(.*)>"
+    name: "kafka_log_$2"
+    labels:
+      topic: "$3"
+      partition: "$4"
+    type: GAUGE
+    help: "Kafka log metrics by topic and partition"
+    
+  - pattern: "kafka.server<type=(ProducerRequestPurgatory), name=(.*)>"
+    name: "kafka_server_producerrequestpurgatory_$2"
+    type: GAUGE
+    help: "Producer request purgatory metrics"
+
+  - pattern: "kafka.server<type=(FetchRequestPurgatory), name=(.*)>"
+    name: "kafka_server_fetchrequestpurgatory_$2"
+    type: GAUGE
+    help: "Fetch request purgatory metrics"

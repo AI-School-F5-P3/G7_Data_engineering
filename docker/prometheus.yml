@@ -1,10 +1,14 @@
 global:
-  scrape_interval: 15s
+  scrape_interval: 15s  #The second configuration includes a global section with scrape_interval: 15s, which sets a default scraping interval for all jobs to 15 seconds"
 
 scrape_configs:
   - job_name: 'kafka'
     static_configs:
       - targets: ['kafka_exporter:9308']
+
+  - job_name: 'zookeeper'
+    static_configs:
+      - targets: ['zookeeper:2181']  # You may need an additional Zookeeper exporter for advanced metrics
 
   - job_name: 'redis'
     static_configs:

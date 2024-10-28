@@ -1,7 +1,8 @@
 version: '3.10'
 
 services:
-  kafka: # Kafka for streaming data
+  # Kafka for streaming data
+  kafka:
     image: bitnami/kafka:latest
     ports:
       - "9092:9092"
@@ -10,29 +11,45 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-
+      # JMX Exporter for Kafka metrics
+      KAFKA_JMX_OPTS: "-javaagent:/monitoring/kafka/jmx_prometheus_javaagent.jar=7071:/monitoring/kafka/kafka_jmx_config.yaml"
+    volumes:
+      - ./monitoring/kafka:/monitoring/kafka
     networks:
       - monitoring
 
-  zookeeper: # Zookeeper for Kafka coordination
+  # Zookeeper for Kafka coordination
+  zookeeper:
     image: bitnami/zookeeper:latest
     ports:
-        - "2181:2181"
+      - "2181:2181"
     environment:
-        ALLOW_ANONYMOUS_LOGIN: "yes"
+      ALLOW_ANONYMOUS_LOGIN: "yes"
     networks:
-        - monitoring
+      - monitoring
 
-
-  redis: # Redis for storing data
+  # Redis for storing data
+  redis:
     image: redis:latest
     ports:
-        - "6379:6379"
+      - "6379:6379"
     networks:
-        - monitoring
+      - monitoring
 
+  # Redis Exporter for Prometheus metrics
+  redis_exporter:
+    image: oliver006/redis_exporter:latest
+    ports:
+      - "9121:9121" # Port where metrics are exposed for Prometheus
+    environment:
+      - REDIS_ADDR=redis:6379  # Connects the exporter to the Redis service
+    depends_on:
+      - redis
+    networks:
+      - monitoring
 
-  postgres: # PostgreSQL for storing data
+  # PostgreSQL for storing data
+  postgres:
     image: postgres:latest
     ports:
       - "5432:5432"
@@ -40,3 +57,49 @@ services:
       - .env
     networks:
       - monitoring
+
+  # PostgreSQL Exporter for Prometheus metrics
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter
+    ports:
+      - "9187:9187"
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:password@postgres:5432/postgres?sslmode=disable"  # Replace `password` with your actual password
+    depends_on:
+      - postgres
+    networks:
+      - monitoring
+
+  # MongoDB service (if needed)
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    networks:
+      - monitoring
+
+  # MongoDB Exporter for Prometheus metrics
+  mongodb_exporter:
+    image: percona/mongodb_exporter:0.42.0
+    ports:
+      - "9216:9216"
+    environment:
+      MONGODB_URI: "mongodb://mongodb:27017"
+    depends_on:
+      - mongodb
+    networks:
+      - monitoring
+
+  # Prometheus service
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - monitoring
+
+networks:
+  monitoring:
+    driver: bridge
