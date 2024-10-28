@@ -1,4 +1,4 @@
-version: '3.8'
+version: '3.10'
 
 services:
   zookeeper:
@@ -9,7 +9,8 @@ services:
     ports:
       - "2181:2181"
 
-  kafka:
+
+kafka:
     image: confluentinc/cp-kafka:latest
     depends_on:
       - zookeeper
@@ -23,21 +24,46 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
-  redis:
+
+ # Redis service for storing data
+redis:
     image: redis:latest
     ports:
       - "6379:6379"
-    volumes:
-      - redis_data:/data
+    networks:
+      - monitoring
 
-  mongodb:
+  # Redis Exporter for Prometheus metrics
+redis_exporter:
+    image: oliver006/redis_exporter:latest
+    ports:
+      - "9121:9121"  # Port where metrics are exposed for Prometheus
+    environment:
+      - REDIS_ADDR=redis:6379  # Connects the exporter to the Redis service
+    depends_on:
+      - redis
+    networks:
+      - monitoring
+
+mongodb:
     image: mongo:latest
     ports:
       - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
+    networks:
+      - monitoring
 
-  postgres:
+mongodb_exporter:
+    image: percona/mongodb_exporter:0.42.0
+    ports:
+      - "9216:9216"  # Port for Prometheus to scrape metrics
+    environment:
+      MONGODB_URI: "mongodb://mongodb:27017"  # Adjust URI if needed
+    depends_on:
+      - mongodb
+    networks:
+      - monitoring
+
+postgres:
     image: postgres:latest
     ports:
       - "5432:5432"
@@ -49,7 +75,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./init-scripts:/docker-entrypoint-initdb.d
 
-  app:
+app:
     build:
       context: .
       dockerfile: Dockerfile
@@ -66,7 +92,7 @@ services:
     env_file:
       - .env
 
-  api:
+api:
     build:
       context: .
       dockerfile: Dockerfile.api
@@ -85,7 +111,7 @@ services:
       - .env
     restart: unless-stopped
 
-  streamlit:
+streamlit:
     build:
       context: .
       dockerfile: Dockerfile.streamlit
@@ -96,7 +122,7 @@ services:
     env_file:
       - .env
 
-  prometheus:
+prometheus:
     image: prom/prometheus:latest
     ports:
       - "9090:9090"
@@ -109,7 +135,7 @@ services:
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
 
-  grafana:
+grafana:
     image: grafana/grafana:latest
     ports:
       - "3000:3000"
@@ -127,3 +153,8 @@ volumes:
   redis_data:
   prometheus_data:
   grafana_data:
+
+
+networks:
+  monitoring:
+    driver: bridge 
