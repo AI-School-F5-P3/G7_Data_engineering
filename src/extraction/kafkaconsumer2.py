@@ -1,23 +1,25 @@
 import logging
 import json
 from confluent_kafka import Consumer, KafkaException, KafkaError
+from prometheus_client import start_http_server, Counter, Summary
 from pymongo import MongoClient
-from bson import ObjectId  # Importar para manejar ObjectId
+from bson import ObjectId
 from src.transformation.datatransformer import DataTransformer
 from src.loading.mongodbloader import MongoDBLoader
 from src.loading.sql_loader import SQLLoader
 import urllib.parse as urlparse
 import redis
-from src.config import KAFKA_BOOTSTRAP_SERVERS, KAFKA_TOPIC, POSTGRES_URI, REDIS_URI  # <-- Importar configuración
+from src.config import KAFKA_BOOTSTRAP_SERVERS, KAFKA_TOPIC, POSTGRES_URI, REDIS_URI
+import time
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Verificación de las variables importadas
-logger.info(f"KAFKA_BOOTSTRAP_SERVERS: {KAFKA_BOOTSTRAP_SERVERS}")
-logger.info(f"KAFKA_TOPIC: {KAFKA_TOPIC}")
-logger.info(f"POSTGRES_URI: {POSTGRES_URI}")
-logger.info(f"REDIS_URI: {REDIS_URI}")
+# Configuración de métricas de Prometheus
+kafka_messages_total = Counter('kafka_messages_total', 'Total de mensajes procesados desde Kafka')
+kafka_errors_total = Counter('kafka_errors_total', 'Total de errores en Kafka')
+redis_queries_total = Counter('redis_queries_total', 'Total de consultas a Redis')
+processing_time = Summary('processing_time', 'Tiempo de procesamiento de cada mensaje')
 
 def convert_objectid_to_str(data):
     """Recorre el diccionario y convierte ObjectId a cadena."""
@@ -28,7 +30,9 @@ def convert_objectid_to_str(data):
 
 class KafkaConsumer:
     def __init__(self):
-        # Usar la variable KAFKA_BOOTSTRAP_SERVERS y KAFKA_TOPIC importadas
+        # Iniciar el servidor de Prometheus en el puerto 8000
+        start_http_server(8000)
+
         self.consumer = Consumer({
             'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS,
             'group.id': 'hr_group',
@@ -40,8 +44,6 @@ class KafkaConsumer:
         self.mongo_loader = MongoDBLoader()
         self.sql_loader = self.initialize_sql_loader()
         self.data_transformer = DataTransformer()
-
-        # Configuración de Redis
         self.redis_client = redis.StrictRedis.from_url(REDIS_URI)
         logger.info(f"Connected to Redis: {REDIS_URI}")
 
@@ -83,40 +85,54 @@ class KafkaConsumer:
                         continue
                     else:
                         logger.error(f"Kafka error: {msg.error()}")
+                        kafka_errors_total.inc()  # Registrar error en Kafka
                         raise KafkaException(msg.error())
                 else:
+                    kafka_messages_total.inc()  # Incrementar contador de mensajes procesados
+
                     value = json.loads(msg.value().decode('utf-8'))
                     logger.info(f"Received message: {value}")
 
-                    # Transformar y consolidar datos
+                    start_time = time.time()  # Iniciar tiempo de procesamiento
+
                     transformed_data = self.data_transformer.transform(value)
-
+                    
                     if transformed_data:
-                        logger.info(f"Data complete for passport: {transformed_data['passport']}")
+                        passport_value = transformed_data.get('passport')
+                        if passport_value:
+                            logger.info(f"Data complete for passport: {passport_value}")
+                            transformed_data = convert_objectid_to_str(transformed_data)
 
-                        # Convertir ObjectId a cadena antes de guardar en Redis
-                        transformed_data = convert_objectid_to_str(transformed_data)
+                            # Guardar en Redis
+                            redis_queries_total.inc()  # Incrementar contador de consultas a Redis
+                            self.redis_client.set(passport_value, json.dumps(transformed_data))
+                            logger.info(f"Stored data in Redis for passport: {passport_value}")
 
-                        # Guardar datos en Redis
-                        self.redis_client.set(transformed_data['passport'], json.dumps(transformed_data))
-                        logger.info(f"Stored data in Redis for passport: {transformed_data['passport']}")
-                    
-                        # Llamada a los métodos SQL correspondientes
-                        if 'name' in transformed_data:
-                            self.sql_loader.load_personal_data(transformed_data)
-                        if 'city' in transformed_data:
-                            self.sql_loader.load_location_data(transformed_data)
-                        if 'company' in transformed_data:
-                            self.sql_loader.load_professional_data(transformed_data)
-                        if 'iban' in transformed_data:
-                            self.sql_loader.load_bank_data(transformed_data)
-                        if 'ipv4' in transformed_data:
-                            self.sql_loader.load_net_data(transformed_data)
-                    
-                        # Cargar en MongoDB
-                        self.mongo_loader.load(transformed_data)
+                            # Cargar en SQL y MongoDB
+                            try:
+                                if 'name' in transformed_data:
+                                    self.sql_loader.load_personal_data(transformed_data)
+                                if 'city' in transformed_data:
+                                    self.sql_loader.load_location_data(transformed_data)
+                                if 'company' in transformed_data:
+                                    self.sql_loader.load_professional_data(transformed_data)
+                                if 'iban' in transformed_data:
+                                    self.sql_loader.load_bank_data(transformed_data)
+                                if 'ipv4' in transformed_data:
+                                    self.sql_loader.load_net_data(transformed_data)
+                            except KeyError as e:
+                                logger.error(f"Error inserting data: missing field {e}")
+
+                            # Cargar en MongoDB
+                            self.mongo_loader.load(transformed_data)
+                        else:
+                            logger.warning("Message does not contain a 'passport' field; skipping SQL and Redis storage.")
                     else:
                         logger.info("Data incomplete, waiting for more fragments.")
+
+                    # Registrar tiempo de procesamiento
+                    processing_time.observe(time.time() - start_time)
+
         except KafkaException as e:
             logger.error(f"Kafka consumption failed: {e}")
         finally:

@@ -3,6 +3,7 @@ import logging
 
 class SQLLoader:
     def __init__(self, conn_info):
+        # Use pg8000 to connect to PostgreSQL
         self.conn = pg8000.connect(**conn_info)
         self.cursor = self.conn.cursor()
         self.logger = logging.getLogger(__name__)
@@ -117,3 +118,4 @@ class SQLLoader:
         except Exception as e:
             self.logger.error(f"Error inserting net data: {e}")
             self.conn.rollback()
+

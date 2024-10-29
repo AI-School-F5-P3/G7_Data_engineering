@@ -1,42 +1,43 @@
 from pymongo import MongoClient
+from pymongo.errors import ConnectionFailure, OperationFailure
+import logging
+import json
 import os
 from src.config import MONGODB_CONNECTION_STRING, MONGODB_DATABASE, MONGODB_COLLECTION
 
 class MongoDBLoader:
     def __init__(self):
-        # Usar la configuración de config.py
+        # MongoDB configuration
         self.mongo_uri = MONGODB_CONNECTION_STRING
-        
-        # Establecer la conexión con MongoDB
-        self.client = MongoClient(self.mongo_uri)
+        self.client = MongoClient(self.mongo_uri, serverSelectionTimeoutMS=5000)  # Timeout for connection
         self.db = self.client[MONGODB_DATABASE]
         self.collection = self.db[MONGODB_COLLECTION]
+        self.logger = logging.getLogger(__name__)
 
     def test_connection(self):
         try:
-            self.client.server_info()
-            print("Successfully connected to MongoDB")
-        except Exception as e:
-            print(f"Failed to connect to MongoDB: {e}")
+            self.client.server_info()  # Check if MongoDB is accessible
+            self.logger.info("Successfully connected to MongoDB")
+        except ConnectionFailure as e:
+            self.logger.error(f"Failed to connect to MongoDB: {e}")
 
     def load(self, data):
         try:
-            # Intentar insertar el documento
             result = self.collection.insert_one(data)
-            print(f"Document inserted with ID: {result.inserted_id}")
-        except Exception as e:
-            # Manejo de errores en caso de que la inserción falle
-            print(f"Error inserting document: {e}")
-            print(f"Full error details: {str(e)}")
+            self.logger.info(f"Document inserted with ID: {result.inserted_id}")
+        except (ConnectionFailure, OperationFailure) as e:
+            self.logger.error(f"MongoDB error: {str(e)}")
+            # Retry or additional error handling can be added here
 
-# Uso del MongoDBLoader
+# Sample usage of MongoDBLoader
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     loader = MongoDBLoader()
     
-    # Probar la conexión primero
+    # Test the MongoDB connection first
     loader.test_connection()
     
-    # Ejemplo de datos a cargar
+    # Sample data for loading into MongoDB
     sample_data = {
         'name': 'Ms. Hannah',
         'last_name': 'Smith',
@@ -44,8 +45,8 @@ if __name__ == "__main__":
         'email': 'giulia62@tele2.it',
     }
 
-    # Cargar datos en MongoDB
+    # Load data into MongoDB
     loader.load(sample_data)
 
-    # Imprimir la URI de MongoDB para verificar
+    # Print the MongoDB URI to verify
     print(f"MongoDB URI: {MONGODB_CONNECTION_STRING}")
