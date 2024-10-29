@@ -10,7 +10,7 @@ services:
       - "2181:2181"
 
 
-kafka:
+  kafka:
     image: confluentinc/cp-kafka:latest
     depends_on:
       - zookeeper
@@ -26,7 +26,7 @@ kafka:
 
 
  # Redis service for storing data
-redis:
+  redis:
     image: redis:latest
     ports:
       - "6379:6379"
@@ -34,7 +34,7 @@ redis:
       - monitoring
 
   # Redis Exporter for Prometheus metrics
-redis_exporter:
+  redis_exporter:
     image: oliver006/redis_exporter:latest
     ports:
       - "9121:9121"  # Port where metrics are exposed for Prometheus
@@ -45,14 +45,14 @@ redis_exporter:
     networks:
       - monitoring
 
-mongodb:
+  mongodb:
     image: mongo:latest
     ports:
       - "27017:27017"
     networks:
       - monitoring
 
-mongodb_exporter:
+  mongodb_exporter:
     image: percona/mongodb_exporter:0.42.0
     ports:
       - "9216:9216"  # Port for Prometheus to scrape metrics
@@ -63,7 +63,7 @@ mongodb_exporter:
     networks:
       - monitoring
 
-postgres:
+  postgres:
     image: postgres:latest
     ports:
       - "5432:5432"
@@ -75,7 +75,7 @@ postgres:
       - postgres_data:/var/lib/postgresql/data
       - ./init-scripts:/docker-entrypoint-initdb.d
 
-app:
+  app:
     build:
       context: .
       dockerfile: Dockerfile
@@ -92,7 +92,7 @@ app:
     env_file:
       - .env
 
-api:
+  api:
     build:
       context: .
       dockerfile: Dockerfile.api
@@ -111,7 +111,7 @@ api:
       - .env
     restart: unless-stopped
 
-streamlit:
+  streamlit:
     build:
       context: .
       dockerfile: Dockerfile.streamlit
@@ -122,7 +122,7 @@ streamlit:
     env_file:
       - .env
 
-prometheus:
+  prometheus:
     image: prom/prometheus:latest
     ports:
       - "9090:9090"
@@ -135,7 +135,7 @@ prometheus:
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
 
-grafana:
+  grafana:
     image: grafana/grafana:latest
     ports:
       - "3000:3000"
