@@ -15,16 +15,15 @@ if __name__ == "__main__":
     db_type = os.getenv('DB_TYPE')
     db_host = os.getenv('DB_HOST')
     db_port = os.getenv('DB_PORT')
-    db_name = os.getenv('DB_DB')
+    db_db = os.getenv('DB_DB')
     db_schema = os.getenv('DB_SCHEMA')
     db_user = os.getenv('DB_USER')
     db_pass = os.getenv('DB_PASSWORD')
 
     # Inicializa el loader de MongoDB
-    mongo_loader = MongoDBLoader(uri=mongo_uri, db_name="hr_data", collection_name="data")
+    mongo_loader = MongoDBLoader(uri=mongo_uri, db_name=db_name, collection_name=collection_name)
     # Inicializa el loader de MongoDB
-    sql_loader = SQLloader(host=db_host, database=db_name, 
-    user=db_user, password=db_pass, port=db_port)
+    sql_loader = SQLloader(host=db_host, database=db_name, user=db_user, password=db_pass, port=db_port)
 
     # Inicializa el consumidor de Kafka
     kafka_consumer = KafkaConsumer(kafka_broker, "hrpro-group", mongo_loader, sql_loader)
