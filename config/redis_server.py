@@ -3,6 +3,6 @@ import redis
 
 # Create an instance of Redis
 redis_client = redis.Redis(
-    host=REDIS_HOST,
+    host=redis,
     port=REDIS_PORT,
     password=REDIS_PASSWORD)

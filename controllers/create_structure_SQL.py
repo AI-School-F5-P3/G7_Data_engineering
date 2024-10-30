@@ -1,5 +1,6 @@
 from config.mysql_database import mysql_conn
 
+
 def create_mysql_table():
     """
     Creates a MySQL table to store user data.
@@ -64,3 +65,4 @@ def create_mysql_table():
         mysql_conn.close()
     except Exception as e:
         print(f"Error creating MySQL table: {e}")
+

@@ -17,8 +17,9 @@ services:
       - .:/usr/src/app
     networks:
       - app-network
-    command: ["faust", "-A", "app", "worker", "-l", "info"]  # Run Faust worker inside the Docker container
-  
+    command: ["python", "app.py"]
+
+
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
     environment:
@@ -32,10 +33,13 @@ services:
   mongo:
     image: mongo:latest
     container_name: mongo-container
-    ports: 
-      - 27017:27017
+    ports:
+      - 27018:27017
     volumes:
       - mongo-data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
     networks:
       - app-network
 
@@ -44,7 +48,13 @@ services:
     container_name: mysql-container
     env_file:
       - .env
-    ports: 
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      # MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_HOST: '%'  # Allow root connections from any host
+    ports:
       - 3307:3306
     volumes:
       - mysql-data:/var/lib/mysql
@@ -58,6 +68,7 @@ services:
       - 6379:6379
     networks:
       - app-network
+  
 
   kafka:
     container_name: kafka
@@ -66,6 +77,7 @@ services:
       - zookeeper
     ports:
       - 29092:29092
+      - 9092:9092
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -73,8 +85,12 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      # Added configs for better reliability
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: 3
     networks:
-      - app-network
+      - app-network 
 
   random_generator:
     container_name: random_generator

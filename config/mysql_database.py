@@ -1,5 +1,5 @@
 import mysql.connector
-from config.connection import MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE, MYSQL_PORT
+from config.connection import MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD, MYSQL_PORT, MYSQL_DATABASE
 
 # Create an instance of MySQL
 mysql_conn = mysql.connector.connect(

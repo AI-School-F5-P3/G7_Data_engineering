@@ -3,6 +3,9 @@ FROM python:3.11
 
 WORKDIR /usr/src/app
 
+# Install system dependencies
+RUN apt-get update && apt-get install -y librdkafka-dev
+
 # Install dependencies
 COPY requirements.txt /usr/src/app/requirements.txt
 
@@ -15,5 +18,5 @@ COPY . /usr/src/app
 RUN chmod +x app.py
 
 # Run the Faust application
-CMD ["faust", "-A", "app", "worker", "-l", "info"]
+CMD ["python", "app.py"]
 
