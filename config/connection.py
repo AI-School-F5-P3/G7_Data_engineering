@@ -4,9 +4,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Environment variables
-MONGO_DB_URI = os.getenv('MONGO_DB_URI')
-MONGODB_DATABASE = os.getenv('MONGODB_DATABASE')
-MONGODB_COLLECTION = os.getenv('MONGODB_COLLECTION')
+MONGO_URI = os.getenv('MONGO_DB_URI')
+MONGO_DATABASE = os.getenv('MONGODB_DATABASE')
+MONGO_COLLECTION = os.getenv('MONGODB_COLLECTION')
 REDIS_HOST = os.getenv('REDIS_HOST')
 REDIS_PORT = os.getenv('REDIS_PORT')
 REDIS_PASSWORD = os.getenv('REDIS_PASSWORD')
